@@ -55,6 +55,14 @@ function startWsServer() {
     ws.on('close', () => wsClients.delete(ws));
     ws.on('error', () => wsClients.delete(ws));
   });
+  wss.on('error', err => {
+    if (err.code === 'EADDRINUSE') {
+      // Another instance is already running — that's fine, reuse its WS server
+      logEvent({ event: 'ws_reuse', note: 'port 7432 already bound by another instance' });
+    } else {
+      logEvent({ event: 'ws_error', err: err.message });
+    }
+  });
 }
 function broadcastCloseTab(hint = '') {
   const msg = JSON.stringify({ action: 'close_tab', hint });
@@ -217,6 +225,11 @@ ipcMain.handle('load-log', () => {
   try { return fs.readFileSync(LOG_FILE, 'utf8').trim().split('\n').slice(-40).join('\n'); }
   catch { return ''; }
 });
+
+// ── single instance lock ──────────────────────────────────────────────────────
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) { app.quit(); }
+app.on('second-instance', () => { if (petWin) petWin.focus(); });
 
 // ── boot ──────────────────────────────────────────────────────────────────────
 app.whenReady().then(() => {

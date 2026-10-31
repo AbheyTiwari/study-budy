@@ -3,151 +3,231 @@
 <head>
 <meta charset="utf-8">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #0d0d1a;
-    color: #e2e2e2;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    border: 1.5px solid #e94560;
-    border-radius: 14px;
-    overflow: hidden;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-  /* drag bar */
-  #titlebar {
-    background: #16213e;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    -webkit-app-region: drag;
-    cursor: move;
-    flex-shrink: 0;
-  }
-  #titlebar span { font-weight: 700; font-size: 13px; color: #e94560; letter-spacing: 1px; }
-  #close-btn {
-    -webkit-app-region: no-drag;
-    background: none; border: none; color: #555; font-size: 16px;
-    cursor: pointer; padding: 0 4px; line-height: 1;
-  }
-  #close-btn:hover { color: #e94560; }
+* { margin:0; padding:0; box-sizing:border-box; }
 
-  /* progress bar */
-  #progress-wrap { background: #0f0f20; padding: 8px 14px 4px; flex-shrink: 0; }
-  #progress-bar-bg { background: #1a1a3e; border-radius: 8px; height: 6px; }
-  #progress-bar-fill { background: #e94560; height: 6px; border-radius: 8px; transition: width 0.4s; }
-  #progress-label { font-size: 10px; color: #555; margin-top: 3px; }
+:root {
+  --bg:      #08080f;
+  --surface: #111120;
+  --card:    #161628;
+  --border:  #1e1e3a;
+  --accent:  #e94560;
+  --accent2: #7c3aed;
+  --text:    #f0f0f8;
+  --muted:   #4a4a6a;
+  --green:   #22c55e;
+}
 
-  /* task list */
-  #task-list { flex: 1; overflow-y: auto; padding: 8px 10px; }
-  #task-list::-webkit-scrollbar { width: 4px; }
-  #task-list::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+html, body {
+  height: 100vh;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
 
-  .task-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    margin-bottom: 4px;
-    background: #111128;
-    transition: background 0.2s;
-  }
-  .task-row:hover { background: #1a1a3e; }
-  .task-row.done { opacity: 0.45; }
+/* ── titlebar ── */
+#titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  -webkit-app-region: drag;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.title-left { display: flex; align-items: center; gap: 9px; }
+.title-icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.title-text { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
+.title-sub  { font-size: 10px; color: var(--muted); margin-top: 1px; }
+#close-btn {
+  -webkit-app-region: no-drag;
+  width: 26px; height: 26px;
+  background: var(--surface); border: none; border-radius: 7px;
+  color: var(--muted); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+#close-btn:hover { background: var(--accent); color: white; }
 
-  .task-cb {
-    width: 18px; height: 18px; min-width: 18px;
-    accent-color: #e94560; cursor: pointer; margin-top: 1px;
-  }
-  .task-text { font-size: 12px; line-height: 1.4; flex: 1; cursor: pointer; }
-  .task-del {
-    background: none; border: none; color: #333; font-size: 13px;
-    cursor: pointer; padding: 0; align-self: center;
-  }
-  .task-del:hover { color: #e94560; }
+/* ── progress section ── */
+#progress-section {
+  padding: 14px 18px 10px;
+  flex-shrink: 0;
+}
+.progress-header {
+  display: flex; justify-content: space-between;
+  align-items: baseline; margin-bottom: 8px;
+}
+.progress-header span:first-child { font-size: 11px; color: var(--muted); }
+#progress-fraction { font-size: 20px; font-weight: 800; color: var(--text); }
+#progress-fraction .denom { font-size: 13px; font-weight: 500; color: var(--muted); }
 
-  /* add row */
-  #add-row {
-    display: flex;
-    gap: 6px;
-    padding: 8px 10px;
-    background: #0f0f20;
-    flex-shrink: 0;
-  }
-  #new-task {
-    flex: 1;
-    background: #1a1a3e;
-    border: 1px solid #333;
-    border-radius: 7px;
-    color: #e2e2e2;
-    font-size: 12px;
-    padding: 6px 10px;
-    outline: none;
-  }
-  #new-task:focus { border-color: #e94560; }
-  #add-btn {
-    background: #e94560; color: white; border: none;
-    border-radius: 7px; font-size: 12px; font-weight: 700;
-    padding: 6px 12px; cursor: pointer;
-  }
-  #add-btn:hover { background: #c73652; }
+.progress-track {
+  height: 4px; background: var(--surface);
+  border-radius: 99px; overflow: hidden;
+}
+#progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 99px;
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  width: 0%;
+}
 
-  /* bottom bar */
-  #bottombar {
-    display: flex;
-    gap: 6px;
-    padding: 8px 10px;
-    background: #0a0a16;
-    flex-shrink: 0;
-  }
-  .btn-sm {
-    flex: 1;
-    background: #1a1a3e; border: none; color: #aaa;
-    font-size: 11px; border-radius: 6px;
-    padding: 5px 8px; cursor: pointer;
-  }
-  .btn-sm:hover { background: #e94560; color: white; }
+/* ── done banner ── */
+#done-banner {
+  display: none;
+  margin: 0 18px 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.04));
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: 10px;
+  font-size: 12px; font-weight: 600; color: var(--green);
+  text-align: center;
+}
 
-  #done-banner {
-    display: none;
-    background: linear-gradient(135deg, #1a3a1a, #0d2a0d);
-    border-top: 1px solid #4caf50;
-    padding: 10px;
-    text-align: center;
-    font-size: 13px;
-    color: #4caf50;
-    font-weight: 700;
-  }
+/* ── task list ── */
+#task-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 4px 18px 8px;
+}
+#task-scroll::-webkit-scrollbar { width: 3px; }
+#task-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+.empty-state {
+  color: var(--muted); font-size: 12px;
+  text-align: center; padding: 28px 0;
+  line-height: 1.8;
+}
+
+.task-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  background: var(--card);
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.task-item:hover { border-color: var(--border); }
+.task-item.done { opacity: 0.38; }
+
+.task-check {
+  width: 18px; height: 18px; min-width: 18px;
+  border-radius: 6px; border: 1.5px solid var(--muted);
+  background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px; transition: all 0.15s; flex-shrink: 0;
+}
+.task-item.done .task-check {
+  background: var(--accent); border-color: var(--accent);
+}
+.task-item.done .task-check::after { content: '✓'; font-size: 11px; color: white; font-weight: 700; }
+
+.task-label {
+  flex: 1; font-size: 12.5px; line-height: 1.5;
+  font-weight: 500; color: var(--text);
+}
+.task-item.done .task-label { text-decoration: line-through; color: var(--muted); }
+
+.task-del {
+  background: none; border: none; color: var(--border);
+  font-size: 14px; cursor: pointer; padding: 0; line-height: 1;
+  align-self: center; transition: color 0.15s; flex-shrink: 0;
+}
+.task-del:hover { color: var(--accent); }
+
+/* ── add input ── */
+#add-section {
+  padding: 8px 18px 10px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+}
+#add-row {
+  display: flex; gap: 8px; align-items: center;
+}
+#new-task {
+  flex: 1; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px;
+  color: var(--text); font-size: 12px; font-family: inherit;
+  padding: 9px 12px; outline: none; transition: border-color 0.15s;
+}
+#new-task::placeholder { color: var(--muted); }
+#new-task:focus { border-color: var(--accent); }
+#add-btn {
+  background: var(--accent); color: white; border: none;
+  border-radius: 9px; font-size: 12px; font-weight: 700;
+  font-family: inherit; padding: 9px 16px; cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+#add-btn:hover { opacity: 0.85; }
+
+/* ── action bar ── */
+#actions {
+  display: flex; gap: 8px;
+  padding: 0 18px 14px;
+  flex-shrink: 0;
+}
+.action-btn {
+  flex: 1; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px;
+  color: var(--muted); font-size: 11px; font-family: inherit;
+  font-weight: 600; padding: 8px 10px; cursor: pointer;
+  transition: all 0.15s; text-align: center;
+}
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+body { display: flex; flex-direction: column; }
 </style>
 </head>
 <body>
 
 <div id="titlebar">
-  <span>🤖 STUDY BUDDY</span>
+  <div class="title-left">
+    <div class="title-icon">🤖</div>
+    <div>
+      <div class="title-text">Study Buddy</div>
+      <div class="title-sub">GATE DA · MA · 2027</div>
+    </div>
+  </div>
   <button id="close-btn">✕</button>
 </div>
 
-<div id="progress-wrap">
-  <div id="progress-bar-bg"><div id="progress-bar-fill" style="width:0%"></div></div>
-  <div id="progress-label">0 / 0 tasks done</div>
+<div id="progress-section">
+  <div class="progress-header">
+    <span>Today's Progress</span>
+    <span id="progress-fraction"><span id="done-count">0</span><span class="denom"> / <span id="total-count">0</span></span></span>
+  </div>
+  <div class="progress-track"><div id="progress-fill"></div></div>
 </div>
 
-<div id="task-list"></div>
+<div id="done-banner">🎉 All tasks done for today. Go rest, you earned it.</div>
 
-<div id="done-banner">🎉 All done for today! Go rest.</div>
+<div id="task-scroll"></div>
 
-<div id="add-row">
-  <input id="new-task" type="text" placeholder="Add a GATE task…" maxlength="80">
-  <button id="add-btn">+ Add</button>
+<div id="add-section">
+  <div id="add-row">
+    <input id="new-task" type="text" placeholder="Add a GATE task…" maxlength="100">
+    <button id="add-btn">+ Add</button>
+  </div>
 </div>
 
-<div id="bottombar">
-  <button class="btn-sm" id="btn-check">🔍 Check Now</button>
-  <button class="btn-sm" id="btn-pause">⏸ Pause 30m</button>
+<div id="actions">
+  <button class="action-btn" id="btn-check">🔍 Check Now</button>
+  <button class="action-btn" id="btn-pause">⏸ Pause 30m</button>
 </div>
 
 <script>
@@ -160,60 +240,66 @@ async function load() {
 }
 
 function render() {
-  const list = document.getElementById('task-list');
-  list.innerHTML = '';
-  const done = tasks.filter(t => t.done).length;
-  const pct  = tasks.length ? Math.round(done / tasks.length * 100) : 0;
-  document.getElementById('progress-bar-fill').style.width = pct + '%';
-  document.getElementById('progress-label').textContent = `${done} / ${tasks.length} tasks done`;
-  document.getElementById('done-banner').style.display = (tasks.length && done === tasks.length) ? 'block' : 'none';
+  const scroll = document.getElementById('task-scroll');
+  scroll.innerHTML = '';
 
-  if (!tasks.length) {
-    list.innerHTML = '<div style="color:#444;font-size:12px;padding:16px;text-align:center">No tasks yet. Add one below ↓</div>';
+  const done  = tasks.filter(t => t.done).length;
+  const total = tasks.length;
+  const pct   = total ? (done / total * 100) : 0;
+
+  document.getElementById('done-count').textContent  = done;
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('done-banner').style.display =
+    (total > 0 && done === total) ? 'block' : 'none';
+
+  if (!total) {
+    scroll.innerHTML = `<div class="empty-state">No tasks yet.<br>Add what you need to study today ↓</div>`;
     return;
   }
 
-  tasks.forEach((t, i) => {
+  // undone first, done at bottom
+  const sorted = [...tasks.map((t,i) => ({...t, _i:i}))].sort((a,b) => a.done - b.done);
+
+  sorted.forEach(t => {
+    const i = t._i;
     const row = document.createElement('div');
-    row.className = 'task-row' + (t.done ? ' done' : '');
+    row.className = 'task-item' + (t.done ? ' done' : '');
 
-    const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.className = 'task-cb'; cb.checked = t.done;
-    cb.onchange = () => { tasks[i].done = cb.checked; save(); render(); };
+    const check = document.createElement('div');
+    check.className = 'task-check';
 
-    const txt = document.createElement('div');
-    txt.className = 'task-text'; txt.textContent = t.text;
-    txt.onclick = () => { cb.checked = !cb.checked; tasks[i].done = cb.checked; save(); render(); };
+    const label = document.createElement('div');
+    label.className = 'task-label';
+    label.textContent = t.text;
 
     const del = document.createElement('button');
-    del.className = 'task-del'; del.textContent = '✕';
-    del.onclick = () => { tasks.splice(i, 1); save(); render(); };
+    del.className = 'task-del';
+    del.textContent = '✕';
+    del.onclick = e => { e.stopPropagation(); tasks.splice(i, 1); save(); render(); };
 
-    row.append(cb, txt, del);
-    list.appendChild(row);
+    row.onclick = () => { tasks[i].done = !tasks[i].done; save(); render(); };
+    row.append(check, label, del);
+    scroll.appendChild(row);
   });
 }
 
-async function save() {
-  await ipcRenderer.invoke('save-tasks', tasks);
-}
-
-document.getElementById('add-btn').onclick = addTask;
-document.getElementById('new-task').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
+function save() { ipcRenderer.invoke('save-tasks', tasks); }
 
 function addTask() {
   const el = document.getElementById('new-task');
   const text = el.value.trim();
   if (!text) return;
-  const today = new Date().toISOString().slice(0,10);
-  tasks.push({ text, done: false, addedDate: today });
+  tasks.push({ text, done: false, addedDate: new Date().toISOString().slice(0,10) });
   el.value = '';
   save(); render();
 }
 
-document.getElementById('close-btn').onclick = () => ipcRenderer.invoke('close-todo');
-document.getElementById('btn-check').onclick = () => ipcRenderer.invoke('check-now');
-document.getElementById('btn-pause').onclick = () => ipcRenderer.invoke('pause', 30);
+document.getElementById('add-btn').onclick = addTask;
+document.getElementById('new-task').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+document.getElementById('close-btn').onclick  = () => ipcRenderer.invoke('close-todo');
+document.getElementById('btn-check').onclick  = () => ipcRenderer.invoke('check-now');
+document.getElementById('btn-pause').onclick  = () => ipcRenderer.invoke('pause', 30);
 
 load();
 </script>
