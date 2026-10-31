@@ -1,8 +1,8 @@
 """
 Study Buddy — GATE DA/MA enforcer
-Runs in system tray. Every 15 min takes a screenshot, asks Claude if you're studying,
+Runs in system tray. Every 15 min takes a screenshot, asks Groq (free) if you're studying,
 closes the distraction and yells at you if not.
-Requires: ANTHROPIC_API_KEY env var
+Requires: GROQ_API_KEY env var  (free at console.groq.com)
 """
 
 import os
@@ -33,9 +33,9 @@ except ImportError:
     sys.exit("pip install pystray pillow")
 
 try:
-    import anthropic
+    from groq import Groq
 except ImportError:
-    sys.exit("pip install anthropic")
+    sys.exit("pip install groq")
 
 try:
     import mss
@@ -94,38 +94,41 @@ def capture_screenshot() -> bytes:
         return buf.getvalue()
 
 
-def ask_claude(jpg_bytes: bytes) -> dict:
-    """Send screenshot to Claude vision, return parsed verdict dict."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+def ask_groq(jpg_bytes: bytes) -> dict:
+    """Send screenshot to Groq vision (free), return parsed verdict dict."""
+    import re
+    api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
         return {"verdict": "UNCERTAIN", "reason": "no API key set"}
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = Groq(api_key=api_key)
     b64 = base64.standard_b64encode(jpg_bytes).decode("utf-8")
 
-    msg = client.messages.create(
-        model="claude-opus-4-5",
+    msg = client.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",  # free Groq vision model
         max_tokens=120,
-        system=SYSTEM_PROMPT,
-        messages=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "image",
-                    "source": {"type": "base64", "media_type": "image/jpeg", "data": b64},
-                },
-                {
-                    "type": "text",
-                    "text": "Classify what this person is doing on their PC right now. "
-                            "Reply with exactly one JSON line as instructed."
-                }
-            ],
-        }]
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{b64}"
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": "Classify what this person is doing on their PC right now. "
+                                "Reply with exactly one JSON line as instructed."
+                    }
+                ],
+            }
+        ]
     )
 
-    raw = msg.content[0].text.strip()
-    # Extract JSON even if model adds extra text
-    import re
+    raw = msg.choices[0].message.content.strip()
     m = re.search(r'\{.*\}', raw)
     if m:
         return json.loads(m.group())
@@ -425,7 +428,7 @@ class StudyBuddy:
     def _do_check(self):
         try:
             jpg = capture_screenshot()
-            result = ask_claude(jpg)
+            result = ask_groq(jpg)
             verdict = result.get("verdict", "UNCERTAIN")
             reason  = result.get("reason", "")
             hint    = result.get("close_hint", "")
@@ -525,26 +528,26 @@ class StudyBuddy:
 
 # ── entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
         # Prompt for key on first run, save to user config
         config_file = Path.home() / ".study_buddy" / "config.json"
         if config_file.exists():
             cfg = json.loads(config_file.read_text())
-            os.environ["ANTHROPIC_API_KEY"] = cfg.get("api_key", "")
+            os.environ["GROQ_API_KEY"] = cfg.get("api_key", "")
         else:
             root = tk.Tk()
             root.withdraw()
             key = simpledialog.askstring(
-                "API Key",
-                "Enter your Anthropic API key (saved locally, never sent anywhere but Anthropic):",
+                "Groq API Key",
+                "Enter your FREE Groq API key\n(get one at console.groq.com — it's free):\n\nSaved locally, only sent to Groq.",
                 parent=root
             )
             root.destroy()
             if key:
                 config_file.parent.mkdir(parents=True, exist_ok=True)
                 config_file.write_text(json.dumps({"api_key": key}))
-                os.environ["ANTHROPIC_API_KEY"] = key
+                os.environ["GROQ_API_KEY"] = key
             else:
                 sys.exit("API key required.")
 
