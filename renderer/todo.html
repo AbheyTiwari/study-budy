@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0d0d1a;
+    color: #e2e2e2;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border: 1.5px solid #e94560;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  /* drag bar */
+  #titlebar {
+    background: #16213e;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    -webkit-app-region: drag;
+    cursor: move;
+    flex-shrink: 0;
+  }
+  #titlebar span { font-weight: 700; font-size: 13px; color: #e94560; letter-spacing: 1px; }
+  #close-btn {
+    -webkit-app-region: no-drag;
+    background: none; border: none; color: #555; font-size: 16px;
+    cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+  #close-btn:hover { color: #e94560; }
+
+  /* progress bar */
+  #progress-wrap { background: #0f0f20; padding: 8px 14px 4px; flex-shrink: 0; }
+  #progress-bar-bg { background: #1a1a3e; border-radius: 8px; height: 6px; }
+  #progress-bar-fill { background: #e94560; height: 6px; border-radius: 8px; transition: width 0.4s; }
+  #progress-label { font-size: 10px; color: #555; margin-top: 3px; }
+
+  /* task list */
+  #task-list { flex: 1; overflow-y: auto; padding: 8px 10px; }
+  #task-list::-webkit-scrollbar { width: 4px; }
+  #task-list::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+  .task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    background: #111128;
+    transition: background 0.2s;
+  }
+  .task-row:hover { background: #1a1a3e; }
+  .task-row.done { opacity: 0.45; }
+
+  .task-cb {
+    width: 18px; height: 18px; min-width: 18px;
+    accent-color: #e94560; cursor: pointer; margin-top: 1px;
+  }
+  .task-text { font-size: 12px; line-height: 1.4; flex: 1; cursor: pointer; }
+  .task-del {
+    background: none; border: none; color: #333; font-size: 13px;
+    cursor: pointer; padding: 0; align-self: center;
+  }
+  .task-del:hover { color: #e94560; }
+
+  /* add row */
+  #add-row {
+    display: flex;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #0f0f20;
+    flex-shrink: 0;
+  }
+  #new-task {
+    flex: 1;
+    background: #1a1a3e;
+    border: 1px solid #333;
+    border-radius: 7px;
+    color: #e2e2e2;
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none;
+  }
+  #new-task:focus { border-color: #e94560; }
+  #add-btn {
+    background: #e94560; color: white; border: none;
+    border-radius: 7px; font-size: 12px; font-weight: 700;
+    padding: 6px 12px; cursor: pointer;
+  }
+  #add-btn:hover { background: #c73652; }
+
+  /* bottom bar */
+  #bottombar {
+    display: flex;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #0a0a16;
+    flex-shrink: 0;
+  }
+  .btn-sm {
+    flex: 1;
+    background: #1a1a3e; border: none; color: #aaa;
+    font-size: 11px; border-radius: 6px;
+    padding: 5px 8px; cursor: pointer;
+  }
+  .btn-sm:hover { background: #e94560; color: white; }
+
+  #done-banner {
+    display: none;
+    background: linear-gradient(135deg, #1a3a1a, #0d2a0d);
+    border-top: 1px solid #4caf50;
+    padding: 10px;
+    text-align: center;
+    font-size: 13px;
+    color: #4caf50;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <span>🤖 STUDY BUDDY</span>
+  <button id="close-btn">✕</button>
+</div>
+
+<div id="progress-wrap">
+  <div id="progress-bar-bg"><div id="progress-bar-fill" style="width:0%"></div></div>
+  <div id="progress-label">0 / 0 tasks done</div>
+</div>
+
+<div id="task-list"></div>
+
+<div id="done-banner">🎉 All done for today! Go rest.</div>
+
+<div id="add-row">
+  <input id="new-task" type="text" placeholder="Add a GATE task…" maxlength="80">
+  <button id="add-btn">+ Add</button>
+</div>
+
+<div id="bottombar">
+  <button class="btn-sm" id="btn-check">🔍 Check Now</button>
+  <button class="btn-sm" id="btn-pause">⏸ Pause 30m</button>
+</div>
+
+<script>
+const { ipcRenderer } = require('electron');
+let tasks = [];
+
+async function load() {
+  tasks = await ipcRenderer.invoke('load-tasks');
+  render();
+}
+
+function render() {
+  const list = document.getElementById('task-list');
+  list.innerHTML = '';
+  const done = tasks.filter(t => t.done).length;
+  const pct  = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+  document.getElementById('progress-bar-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${done} / ${tasks.length} tasks done`;
+  document.getElementById('done-banner').style.display = (tasks.length && done === tasks.length) ? 'block' : 'none';
+
+  if (!tasks.length) {
+    list.innerHTML = '<div style="color:#444;font-size:12px;padding:16px;text-align:center">No tasks yet. Add one below ↓</div>';
+    return;
+  }
+
+  tasks.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'task-row' + (t.done ? ' done' : '');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.className = 'task-cb'; cb.checked = t.done;
+    cb.onchange = () => { tasks[i].done = cb.checked; save(); render(); };
+
+    const txt = document.createElement('div');
+    txt.className = 'task-text'; txt.textContent = t.text;
+    txt.onclick = () => { cb.checked = !cb.checked; tasks[i].done = cb.checked; save(); render(); };
+
+    const del = document.createElement('button');
+    del.className = 'task-del'; del.textContent = '✕';
+    del.onclick = () => { tasks.splice(i, 1); save(); render(); };
+
+    row.append(cb, txt, del);
+    list.appendChild(row);
+  });
+}
+
+async function save() {
+  await ipcRenderer.invoke('save-tasks', tasks);
+}
+
+document.getElementById('add-btn').onclick = addTask;
+document.getElementById('new-task').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
+
+function addTask() {
+  const el = document.getElementById('new-task');
+  const text = el.value.trim();
+  if (!text) return;
+  const today = new Date().toISOString().slice(0,10);
+  tasks.push({ text, done: false, addedDate: today });
+  el.value = '';
+  save(); render();
+}
+
+document.getElementById('close-btn').onclick = () => ipcRenderer.invoke('close-todo');
+document.getElementById('btn-check').onclick = () => ipcRenderer.invoke('check-now');
+document.getElementById('btn-pause').onclick = () => ipcRenderer.invoke('pause', 30);
+
+load();
+</script>
+</body>
+</html>

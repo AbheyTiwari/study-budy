@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Study Buddy Tab Enforcer",
+  "version": "1.0",
+  "description": "Closes distraction tabs on command from Study Buddy desktop pet.",
+  "permissions": ["tabs"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Study Buddy Active" }
+}

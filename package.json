@@ -1,0 +1,27 @@
+{
+  "name": "study-buddy",
+  "version": "1.0.0",
+  "description": "GATE study enforcer — desktop pet edition",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "groq-sdk": "^0.7.0",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0"
+  },
+  "build": {
+    "appId": "com.studybuddy.app",
+    "productName": "StudyBuddy",
+    "win": {
+      "target": "portable"
+    },
+    "files": ["main.js", "renderer/**", "assets/**", "node_modules/**"],
+    "extraResources": [{ "from": "extension", "to": "extension" }]
+  }
+}

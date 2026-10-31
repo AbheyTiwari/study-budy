@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: transparent; width: 120px; height: 160px; overflow: hidden; user-select: none; }
+
+  /* ── character container ── */
+  #pet {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  #pet:active { transform: translateX(-50%) scale(0.95); }
+
+  /* ── speech bubble ── */
+  #bubble {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 5px 9px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: #111;
+    white-space: nowrap;
+    max-width: 200px;
+    white-space: normal;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+    transition: opacity 0.3s;
+    min-width: 90px;
+  }
+  #bubble.show { opacity: 1; }
+  #bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #333;
+  }
+
+  /* ── SVG robot ── */
+  svg { width: 80px; height: 100px; overflow: visible; }
+
+  /* body bob */
+  @keyframes bob      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+  @keyframes fastbob  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+  @keyframes shake    { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(-8deg)} 75%{transform:rotate(8deg)} }
+  @keyframes stomp    { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-12px)} 60%{transform:translateY(2px)} }
+  @keyframes pulse    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+  @keyframes zzz      { 0%{opacity:0;transform:translate(0,0) scale(0.5)} 50%{opacity:1} 100%{opacity:0;transform:translate(14px,-20px) scale(1.1)} }
+  @keyframes walkL    { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(-15deg)} }
+  @keyframes walkR    { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(15deg)} }
+  @keyframes blink    { 0%,90%,100%{scaleY:1} 95%{scaleY:0.05} }
+  @keyframes starSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+  @keyframes angry-glow { 0%,100%{filter:drop-shadow(0 0 4px #ff4400)} 50%{filter:drop-shadow(0 0 12px #ff0000)} }
+
+  .bob    { animation: bob 1.2s ease-in-out infinite; }
+  .fastbob{ animation: fastbob 0.5s ease-in-out infinite; }
+  .shake  { animation: shake 0.3s ease-in-out infinite; transform-origin: 50% 100%; }
+  .stomp  { animation: stomp 0.5s ease-in-out infinite; }
+  .pulse  { animation: pulse 0.8s ease-in-out infinite; }
+  .angry  { animation: shake 0.25s ease-in-out infinite, angry-glow 0.5s ease-in-out infinite; transform-origin: 50% 100%; }
+
+  /* legs */
+  .leg-l  { transform-origin: 14px 0; }
+  .leg-r  { transform-origin: 6px 0; }
+  .walk .leg-l { animation: walkL 0.4s ease-in-out infinite; }
+  .walk .leg-r { animation: walkR 0.4s ease-in-out infinite; }
+
+  /* zzz floaters */
+  .z1 { animation: zzz 2s ease-out infinite; }
+  .z2 { animation: zzz 2s ease-out 0.7s infinite; }
+  .z3 { animation: zzz 2s ease-out 1.4s infinite; }
+
+  /* star eyes */
+  .star { animation: starSpin 1s linear infinite; transform-origin: center; }
+</style>
+</head>
+<body>
+
+<div id="bubble">hey!</div>
+
+<div id="pet">
+  <svg id="robot" viewBox="0 0 80 100">
+    <!-- antenna -->
+    <line x1="40" y1="8" x2="40" y2="18" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+    <circle id="antenna-ball" cx="40" cy="7" r="4" fill="#e94560"/>
+
+    <!-- head -->
+    <rect id="head" x="18" y="18" width="44" height="34" rx="10" fill="#2a2a4a" stroke="#e94560" stroke-width="2"/>
+
+    <!-- eyes (normal) -->
+    <g id="eyes-normal">
+      <rect x="25" y="27" width="12" height="10" rx="3" fill="white"/>
+      <rect x="43" y="27" width="12" height="10" rx="3" fill="white"/>
+      <circle id="pupil-l" cx="31" cy="32" r="3.5" fill="#e94560"/>
+      <circle id="pupil-r" cx="49" cy="32" r="3.5" fill="#e94560"/>
+      <!-- shine -->
+      <circle cx="33" cy="30" r="1.2" fill="white"/>
+      <circle cx="51" cy="30" r="1.2" fill="white"/>
+    </g>
+
+    <!-- eyes (angry X) -->
+    <g id="eyes-angry" display="none">
+      <text x="24" y="38" font-size="13" fill="#ff4400" font-weight="bold">✕</text>
+      <text x="43" y="38" font-size="13" fill="#ff4400" font-weight="bold">✕</text>
+    </g>
+
+    <!-- eyes (star / happy) -->
+    <g id="eyes-star" display="none">
+      <text x="23" y="39" font-size="14" class="star" style="transform-box:fill-box">★</text>
+      <text x="43" y="39" font-size="14" class="star" style="transform-box:fill-box">★</text>
+    </g>
+
+    <!-- eyes (sleepy) -->
+    <g id="eyes-sleep" display="none">
+      <line x1="25" y1="32" x2="37" y2="32" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+      <line x1="43" y1="32" x2="55" y2="32" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+    </g>
+
+    <!-- mouth -->
+    <path id="mouth-smile" d="M 29 42 Q 40 50 51 42" stroke="#e94560" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path id="mouth-angry" d="M 29 48 Q 40 40 51 48" stroke="#ff4400" stroke-width="2.5" fill="none" stroke-linecap="round" display="none"/>
+    <path id="mouth-straight"d="M 29 44 L 51 44" stroke="#aaa" stroke-width="2.5" fill="none" stroke-linecap="round" display="none"/>
+
+    <!-- body -->
+    <rect x="20" y="54" width="40" height="28" rx="8" fill="#1a1a3e" stroke="#e94560" stroke-width="1.5"/>
+    <!-- chest light -->
+    <circle id="chest-light" cx="40" cy="68" r="5" fill="#e94560" opacity="0.8"/>
+    <circle cx="28" cy="65" r="2.5" fill="#0f3460"/>
+    <circle cx="52" cy="65" r="2.5" fill="#0f3460"/>
+
+    <!-- arms -->
+    <rect id="arm-l" x="8" y="56" width="12" height="6" rx="3" fill="#2a2a4a" stroke="#e94560" stroke-width="1.5"/>
+    <rect id="arm-r" x="60" y="56" width="12" height="6" rx="3" fill="#2a2a4a" stroke="#e94560" stroke-width="1.5"/>
+
+    <!-- legs group (for walk animation) -->
+    <g class="leg-l"><rect x="25" y="82" width="11" height="14" rx="4" fill="#2a2a4a" stroke="#e94560" stroke-width="1.5"/></g>
+    <g class="leg-r"><rect x="44" y="82" width="11" height="14" rx="4" fill="#2a2a4a" stroke="#e94560" stroke-width="1.5"/></g>
+    <!-- feet -->
+    <rect x="22" y="92" width="15" height="7" rx="4" fill="#e94560"/>
+    <rect x="43" y="92" width="15" height="7" rx="4" fill="#e94560"/>
+
+    <!-- zzz (sleep mode) -->
+    <g id="zzz" display="none">
+      <text class="z1" x="60" y="30" font-size="10" fill="#aaa" font-weight="bold">z</text>
+      <text class="z2" x="64" y="22" font-size="12" fill="#888" font-weight="bold">z</text>
+      <text class="z3" x="68" y="13" font-size="14" fill="#666" font-weight="bold">Z</text>
+    </g>
+  </svg>
+</div>
+
+<script>
+const { ipcRenderer } = require('electron');
+
+const robot   = document.getElementById('robot');
+const pet     = document.getElementById('pet');
+const bubble  = document.getElementById('bubble');
+
+// eye sets
+const eyesNormal = document.getElementById('eyes-normal');
+const eyesAngry  = document.getElementById('eyes-angry');
+const eyesStar   = document.getElementById('eyes-star');
+const eyesSleep  = document.getElementById('eyes-sleep');
+
+// mouths
+const mSmile    = document.getElementById('mouth-smile');
+const mAngry    = document.getElementById('mouth-angry');
+const mStraight = document.getElementById('mouth-straight');
+
+// misc
+const zzz         = document.getElementById('zzz');
+const chestLight  = document.getElementById('chest-light');
+const antennaBall = document.getElementById('antenna-ball');
+
+let currentMood = 'idle';
+let walkDir = 1;
+let walkInterval = null;
+let scoldTimeout = null;
+
+// ── mood controller ───────────────────────────────────────────────────────────
+function setMood(mood) {
+  currentMood = mood;
+  clearAllAnimations();
+
+  // reset eyes/mouth
+  eyesNormal.setAttribute('display','inline');
+  eyesAngry.setAttribute('display','none');
+  eyesStar.setAttribute('display','none');
+  eyesSleep.setAttribute('display','none');
+  mSmile.setAttribute('display','inline');
+  mAngry.setAttribute('display','none');
+  mStraight.setAttribute('display','none');
+  zzz.setAttribute('display','none');
+  chestLight.setAttribute('fill','#e94560');
+  antennaBall.setAttribute('fill','#e94560');
+
+  if (mood === 'idle') {
+    robot.className = 'bob';
+    startWalking();
+  }
+  else if (mood === 'happy') {
+    eyesStar.setAttribute('display','inline');
+    eyesNormal.setAttribute('display','none');
+    robot.className = 'fastbob';
+    chestLight.setAttribute('fill','#4caf50');
+    antennaBall.setAttribute('fill','#4caf50');
+    showBubble(['Great job! 🌟', 'Keep going!!', 'GATE 2027 👊', 'Nice work! 📚'][Math.floor(Math.random()*4)], 3000);
+    stopWalking();
+    setTimeout(() => { if(currentMood==='happy') setMood('idle'); }, 5000);
+  }
+  else if (mood === 'angry') {
+    eyesAngry.setAttribute('display','inline');
+    eyesNormal.setAttribute('display','none');
+    mAngry.setAttribute('display','inline');
+    mSmile.setAttribute('display','none');
+    robot.className = 'angry';
+    chestLight.setAttribute('fill','#ff4400');
+    antennaBall.setAttribute('fill','#ff2200');
+    stopWalking();
+  }
+  else if (mood === 'sleeping') {
+    eyesSleep.setAttribute('display','inline');
+    eyesNormal.setAttribute('display','none');
+    mStraight.setAttribute('display','inline');
+    mSmile.setAttribute('display','none');
+    zzz.setAttribute('display','inline');
+    robot.className = '';
+    chestLight.setAttribute('fill','#555');
+    antennaBall.setAttribute('fill','#555');
+    showBubble('All done! Rest now 😴', 0);
+    stopWalking();
+  }
+}
+
+function clearAllAnimations() {
+  robot.className = '';
+  hideBubble();
+  if (scoldTimeout) clearTimeout(scoldTimeout);
+}
+
+// ── walking ───────────────────────────────────────────────────────────────────
+function startWalking() {
+  stopWalking();
+  const { screen } = require('electron').remote ?? {};
+  // Move every 50ms
+  let px = window.screenX ?? 0;
+  let speed = 1.5;
+  walkDir = Math.random() > 0.5 ? 1 : -1;
+
+  walkInterval = setInterval(async () => {
+    const { ipcRenderer } = require('electron');
+    // get current window pos via a trick: use screenX/screenY
+    // We move in direction walkDir
+    px += speed * walkDir;
+
+    // Bounce off screen edges (approximate — we get screen width from Electron)
+    const sw = window.screen.width - 120;
+    if (px <= 0)  { px = 0;  walkDir = 1;  pet.style.transform = 'translateX(-50%) scaleX(1)'; }
+    if (px >= sw) { px = sw; walkDir = -1; pet.style.transform = 'translateX(-50%) scaleX(-1)'; }
+
+    ipcRenderer.invoke('move-pet', Math.round(px), window.screenY);
+
+    // walking leg animation
+    robot.className = 'walk bob';
+  }, 50);
+
+  // Pause walking randomly
+  const pauseWalk = () => {
+    if (currentMood !== 'idle') return;
+    stopWalking();
+    robot.className = 'bob';
+    const pauseMs = 2000 + Math.random() * 4000;
+    setTimeout(() => {
+      if (currentMood === 'idle') {
+        walkDir = Math.random() > 0.5 ? 1 : -1;
+        pet.style.transform = `translateX(-50%) scaleX(${walkDir > 0 ? 1 : -1})`;
+        startWalking();
+      }
+    }, pauseMs);
+  };
+
+  // Random pauses
+  setTimeout(pauseWalk, 3000 + Math.random() * 5000);
+}
+
+function stopWalking() {
+  if (walkInterval) { clearInterval(walkInterval); walkInterval = null; }
+}
+
+// ── speech bubble ─────────────────────────────────────────────────────────────
+function showBubble(text, autoDismissMs = 3000) {
+  bubble.textContent = text;
+  bubble.classList.add('show');
+  if (autoDismissMs > 0) setTimeout(hideBubble, autoDismissMs);
+}
+function hideBubble() { bubble.classList.remove('show'); }
+
+// ── scold sequence ────────────────────────────────────────────────────────────
+ipcRenderer.on('scold', (_, pendingTasks) => {
+  setMood('angry');
+  const msgs = [
+    '🛑 BACK TO STUDYING!!',
+    '📚 NOT GATE MATERIAL!!',
+    '😤 FOCUS!! GATE 2027!',
+    '🤖 I SAW THAT. STUDY!!',
+  ];
+  const pick = msgs[Math.floor(Math.random() * msgs.length)];
+  showBubble(pick, 0);
+
+  // Show pending tasks one by one
+  let i = 0;
+  const cycle = () => {
+    if (i < pendingTasks.length && currentMood === 'angry') {
+      showBubble(`📌 ${pendingTasks[i]}`, 0);
+      i++;
+      scoldTimeout = setTimeout(cycle, 2500);
+    } else {
+      hideBubble();
+      setTimeout(() => { if(currentMood==='angry') setMood('idle'); }, 1500);
+    }
+  };
+  scoldTimeout = setTimeout(cycle, 2000);
+});
+
+// ── mood from main ────────────────────────────────────────────────────────────
+ipcRenderer.on('mood', (_, mood) => setMood(mood));
+
+// ── click pet to open todo ────────────────────────────────────────────────────
+pet.addEventListener('click', () => {
+  ipcRenderer.invoke('toggle-todo');
+});
+
+// ── random idle chatter ───────────────────────────────────────────────────────
+const idleQuotes = [
+  '📖 Study time!', 'Go go GATE! 🚀', 'Linear algebra? 📐',
+  'DSA grind 💻', 'No distractions! 👀', 'You got this! 💪',
+  'GATE 2027 👊', 'Stats time! 📊', 'Focus mode ON 🧠',
+];
+setInterval(() => {
+  if (currentMood === 'idle' && Math.random() < 0.3) {
+    showBubble(idleQuotes[Math.floor(Math.random() * idleQuotes.length)], 2500);
+  }
+}, 20000);
+
+// ── blink naturally ───────────────────────────────────────────────────────────
+setInterval(() => {
+  if (currentMood === 'idle' || currentMood === 'happy') {
+    const pl = document.getElementById('pupil-l');
+    const pr = document.getElementById('pupil-r');
+    if (!pl) return;
+    pl.setAttribute('ry','0.5'); pr.setAttribute('ry','0.5');
+    setTimeout(() => { pl.removeAttribute('ry'); pr.removeAttribute('ry'); }, 120);
+  }
+}, 3500 + Math.random() * 2000);
+
+// ── boot ──────────────────────────────────────────────────────────────────────
+setMood('idle');
+</script>
+</body>
+</html>

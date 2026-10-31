@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0d0d1a;
+    color: #e2e2e2;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #e94560;
+    border-radius: 14px;
+    overflow: hidden;
+    -webkit-app-region: drag;
+  }
+  * { -webkit-app-region: no-drag; }
+  body { -webkit-app-region: drag; }
+
+  .robot { font-size: 52px; animation: bob 1.2s ease-in-out infinite; margin-bottom: 6px; }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+  h1 { font-size: 20px; font-weight: 800; color: #e94560; letter-spacing: 3px; margin-bottom: 4px; }
+  .sub { font-size: 11px; color: #555; margin-bottom: 22px; }
+
+  .field {
+    display: flex;
+    align-items: center;
+    background: #1a1a3e;
+    border: 1.5px solid #333;
+    border-radius: 9px;
+    width: 360px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+  .field:focus-within { border-color: #e94560; }
+  input {
+    flex: 1;
+    background: none; border: none; outline: none;
+    color: #e2e2e2; font-size: 12px; padding: 11px 14px;
+    font-family: 'Consolas', monospace;
+  }
+  #eye {
+    background: none; border: none; color: #444; font-size: 16px;
+    cursor: pointer; padding: 0 12px;
+  }
+  #eye:hover { color: #e94560; }
+
+  .hint { font-size: 10px; color: #444; margin-bottom: 18px; }
+  .hint a { color: #e94560; text-decoration: none; }
+
+  #err { font-size: 11px; color: #e94560; min-height: 16px; margin-bottom: 8px; }
+
+  #go-btn {
+    background: #e94560; color: white; border: none;
+    border-radius: 9px; font-size: 13px; font-weight: 800;
+    padding: 11px 36px; cursor: pointer; letter-spacing: 1px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  #go-btn:hover { background: #c73652; }
+  #go-btn:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+  <div class="robot">🤖</div>
+  <h1>STUDY BUDDY</h1>
+  <div class="sub">Paste your free Groq API key to activate</div>
+
+  <div class="field">
+    <input id="key-input" type="password" placeholder="gsk_xxxxxxxxxxxxxxxx" autocomplete="off">
+    <button id="eye">👁</button>
+  </div>
+
+  <div class="hint">Get a free key at <a href="#" onclick="require('electron').shell.openExternal('https://console.groq.com')">console.groq.com</a> → API Keys → Create</div>
+  <div id="err"></div>
+
+  <button id="go-btn">LET'S GO →</button>
+
+<script>
+const { ipcRenderer } = require('electron');
+let shown = false;
+
+document.getElementById('eye').onclick = () => {
+  shown = !shown;
+  document.getElementById('key-input').type = shown ? 'text' : 'password';
+  document.getElementById('eye').textContent = shown ? '🙈' : '👁';
+};
+
+function submit() {
+  const key = document.getElementById('key-input').value.trim();
+  const err = document.getElementById('err');
+  if (!key.startsWith('gsk_') || key.length < 20) {
+    err.textContent = '⚠ That doesn\'t look right — Groq keys start with gsk_';
+    return;
+  }
+  err.textContent = '';
+  ipcRenderer.send('submit-api-key', key);
+}
+
+document.getElementById('go-btn').onclick = submit;
+document.getElementById('key-input').addEventListener('keydown', e => { if(e.key==='Enter') submit(); });
+</script>
+</body>
+</html>
